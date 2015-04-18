@@ -1,0 +1,454 @@
+---
+title: "Magolego SNA - Lab 2"
+author: "Perevedentsev P., Makhalova T., Shestakov A."
+date: "04/10/2015"
+output:
+  html_document:
+    toc: true 
+---
+```{r}
+library('igraph')
+library('ggplot2')
+```
+
+## Graph formats
+### GraphML
+[GraphML](https://en.wikipedia.org/wiki/GraphML) is XML-base file format for graphs. It has quite clear and flexible format. Along with XML it represents information in hierarchical way:
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+     http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <graph id="G" edgedefault="undirected">
+    <node id="n0"/>
+    <node id="n1"/>
+    <node id="n2"/>
+    <node id="n3"/>
+    <node id="n4"/>
+    <node id="n5"/>
+    <node id="n6"/>
+    <node id="n7"/>
+    <node id="n8"/>
+    <node id="n9"/>
+    <node id="n10"/>
+    <edge source="n0" target="n2"/>
+    <edge source="n1" target="n2"/>
+    <edge source="n2" target="n3"/>
+    <edge source="n3" target="n5"/>
+    <edge source="n3" target="n4"/>
+    <edge source="n4" target="n6"/>
+    <edge source="n6" target="n5"/>
+    <edge source="n5" target="n7"/>
+    <edge source="n6" target="n8"/>
+    <edge source="n8" target="n7"/>
+    <edge source="n8" target="n9"/>
+    <edge source="n8" target="n10"/>
+  </graph>
+</graphml>
+```
+### GML
+Another flexible format and a bit more readible format is [GML](https://en.wikipedia.org/wiki/Graph_Modelling_Language) (Graph Modelling Language). 
+```
+graph
+[
+  directed 1
+  node
+  [
+   id A
+   label "Node A"
+  ]
+  node
+  [
+   id B
+   label "Node B"
+  ]
+  node
+  [
+   id C
+   label "Node C"
+  ]
+   edge
+  [
+   source B
+   target A
+   label "Edge B to A"
+  ]
+  edge
+  [
+   source C
+   target A
+   label "Edge C to A"
+  ]
+]
+```
+
+### Pajek Format
+[Pajek](http://vlado.fmf.uni-lj.si/pub/networks/pajek/) format emerges from a large network analysis tool. It is not that readible, however it is often used to store big netoworks
+```
+*Vertices 82670
+1 "entity"
+2 "thing"
+3 "anything"
+4 "something"
+5 "nothing"
+6 "whole"
+*arcs
+1 2 5161
+1 9 5615
+2 9 7894
+2 3 812
+2 8 123
+3 8 15
+3 4 456
+4 5 456
+4 7 4
+5 7 4568
+5 6 456 
+6 4 4849
+```
+
+### Edge List, Adjacency List
+In the first case this is simply a pair of connected node that may be supported by a weight.
+```
+a;b
+c;d
+```
+In the second case this is a sequence of nodes -- each line contains neigbours of a node that is stays on the first place
+```
+1 3 4 5
+2 3 8
+3 9
+```
+### Adjacency matrix
+A very rarely used format as it stores minimum amount of information about network and uses lots of space..
+```
+;A;B;C;D;E
+A;0;1;0;1;0
+B;1;0;0;0;0
+C;0;0;1;0;0
+D;0;1;0;1;0
+E;0;0;0;0;0
+```
+
+<center>![Format Comparison](graph-format-table-comparison.png)<center>
+
+### Loading networks with igraph
+Basically a single command is sufficient to read network data to R:
+```{r, eval=FALSE}
+g <- read.graph(file = '...',format = '...', )
+```
+Only in case of adjacency matrix you have to do a bit more..
+```{r, eval=FALSE}
+dat <- read.csv(file = '...', sep = ' ')
+m <- as.matrix(dat)
+g <- graph.adjacency(m, mode='...', weighted = ...)
+```
+
+#### Task
+Open extract files from supplimentary achive. Try to load and plot some of the networks there.
+
+## Power laws
+Now, we are goint to generate power-law distribution syntetically. 
+
+During this part we will determine the meaning of $\alpha$ and try to estimate it.
+
+The functions below are for generating random variables distributed according to power-law and creating histogramm based on generated data.
+```{r, warning=FALSE}
+generate_dist = function(xmin, xmax, alpha, size) {
+  r <- runif(size)
+  return((xmin^(-alpha+1)+r*(xmax^(-alpha+1)-xmin^(-alpha+1)))^(1/(-alpha+1)))
+}
+lorenz = function(h){
+  prob <- rev(h$counts/sum(h$counts))
+  cumProb <- cumsum(prob)
+  wage <- cumsum(prob*rev(h$mids))/sum(prob*rev(h$mids))
+  return(data.frame(wage=wage, prob=cumProb))
+}
+```
+
+### Meaning
+
+That is a very legitimate question. In fact $\alpha$ shows how fairly degree of the distribution is spread in the networks. To show this, lets generate distributions with various parametes.
+
+```{r, warning=FALSE}
+xmin <- 1
+xmax <- 100
+alpha <- 3.1
+n <- 1000
+
+x <- generate_dist(xmin, xmax, alpha, n)
+h <- hist(x, breaks = length(unique(x)))
+l <- lorenz(h)
+qplot(data=l, x = wage, y = prob, geom = 'line') +
+  xlab('Proportion of top degrees') + 
+  ylab('Proportion of nodes')
+
+```
+
+As you may see, the bigger $\alpha$ is the more fairly degree is distrubuted among the vertices.
+
+### Estimation
+
+We are using build-in igraph function to estimate $\alpha$ of destribution
+```{r, warning=FALSE}
+
+g = read.graph('networks/netscience.gml', format='gml')
+d = degree(g)
+h = hist(d, breaks = 1000)
+fit = power.law.fit(d, 1, implementation = "plfit")
+alpha = fit$alpha
+print(alpha)
+
+```
+
+The final part of the task is to calculate parameters and goodness-of-fit for several networks:
+- netscience.gml
+- Cit-HepPh.txt
+
+Hints:
+
+`g = read.graph ...`
+
+`degree(g)`
+
+`power.law.fit`
+
+`fit$alpha`
+
+`fit$KS.p`
+
+## Descriptive statistics
+
+### Shortest path, diameter
+
+**Path** is a finite or infinite sequence of edges which connect a sequence of vertices
+
+```{r}
+g <- graph.formula(1-2-3-4-5-6, 1-3-7, 1-8-4)
+plot(g)
+shortest.paths(g)
+```
+The shortest path from one node to others
+```{r}
+get.shortest.paths(g,1)$vpath
+get.shortest.paths(g,1,4)$vpath
+get.all.shortest.paths(g,1,4)$res
+diameter(g) # the length of the "longest shortest path"
+get.diameter(g)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+radius(g) # is the length of the shortest paths among longest ones
+```
+
+The shortest path between two certain nodes
+```{r}
+get.shortest.paths(g,1,4)$vpath # only one arbitary path
+get.all.shortest.paths(g,1,4)$res #  all paths
+diameter(g) # the length of the "longest shortest path"
+```
+The longest path among shortest paths
+```{r}
+diameter(g) # the length of the "longest shortest path"
+get.diameter(g)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+radius(g) # is the length of the shortest paths among longest ones
+```
+Recall from the previous seminar
+```{r}
+vcount(g) # number of nodes 
+ecount(g) # number of edges
+
+E(g) # list of edges
+V(g) # list of nodes 
+```
+
+#### The shortest path length distribution 
+*Geting a histogram, by calculating the shortest path length between each pair of vertices*
+```{r}
+g<-graph.formula(1-2-3-4-5-6, 1-3-7, 1-8-4, 3-9-10-12, 11-12-13-3)
+tab <- as.table(path.length.hist(g)$res)
+names(tab) <- 1:length(tab)
+barplot(tab)
+```
+
+### Density
+
+**The density** of a graph is the ratio of the number of edges and the number of possible edges.
+```{r}
+graph.density(g)
+```
+
+#### Working Examples
+
+##### Zachary's Karate Club
+*The data was collected from the members of a university karate club by Wayne Zachary in 1977. Each node represents a member of the club, and each edge represents a tie between two members of the club. Zachary studied conflict and fission in this community network, as the karate club was split into two separate clubs.  The network is very small: it has 34 vertices and 78 undirected edges.*
+```{r}
+g <- graph.famous("Zachary")
+plot(g)
+graph.density(g)
+diameter(g) # the length of the "longest shortest path"
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g,layout = layout.fruchterman.reingold)
+tab <- as.table(path.length.hist(g)$res)
+names(tab) <- 1:length(tab)
+barplot(tab,legend = c(path.length.hist(g)$res),main = "The shortest path lengths distribution", col = c("lightblue", "mistyrose", "lightcyan","lavender", "lightgreen"),args.legend = list(title = "The number of paths"),xlab = "Path length", ylab = "The number of paths" )
+```
+
+#### High-energy physics citation network
+See more information on <http://snap.stanford.edu/data/cit-HepPh.html>
+```{r}
+g <- read.graph("./networks/Cit-HepPh.txt", format="edgelist")
+vcount(g) 
+ecount(g)
+tab <- as.table(path.length.hist(g)$res)
+max(tab)
+min(tab)
+names(tab) <- 1:length(tab)
+barplot(tab,main = "The shortest path lengths distribution",xlab = "Path length", ylab = "The number of paths", cex.names = 0.5)
+```
+
+#### Other examples...
+##### 1. Ring graph 
+```{r}
+g <- graph.ring(8)
+plot(g)
+shortest.paths(g)
+get.diameter(g)
+diameter(g)
+radius(g)
+```
+
+##### 2. An arbitary graph
+```{r}
+g <- graph.formula(1-2-3-4-5-6,7-8-9-3-10, 4-11)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+shortest.paths(g)
+diameter(g)
+get.diameter(g)
+radius(g)
+```
+
+##### 3. Weighted graph
+```{r}
+set.seed(1)
+g <- graph.formula(1-2-3-4-5-1)
+E(g)$weight <- sample(seq_len(ecount(g)+5))
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g,edge.label = E(g)$weight)
+shortest.paths(g)
+diameter(g)
+diameter(g, weights=NA)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g, weights=NA))$color <- "red"
+plot(g, edge.label = E(g)$weight)
+shortest.paths(g, weights=NA)
+```
+
+### Connected components of a graph
+
+**A connected component** is a maximal connected subgraph of G. Each vertex belongs to exactly one connected component, as does each edge.
+To check, whether the graph is connected use command 
+```{r, eval=FALSE} 
+is.connected(g)
+```
+
+A directed graph is called **weakly connected** if replacing all of its directed edges with undirected edges produces a connected (undirected) graph. It is **connected** if it contains a directed path from u to v or a directed path from v to u for every pair of vertices u, v. 
+It is **strongly connected** if it contains a directed path from u to v and a directed path from v to u for every pair of vertices u, v.
+```{r, eval=FALSE} 
+clusters(graph, mode=c("weak", "strong")) # select the required mode
+no.clusters(graph, mode=c("weak", "strong"))
+``` 
+
+#### Directed graphs
+```{r} 
+g<-read.graph(file='./networks/tutorial2_1.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+```{r} 
+g<-read.graph(file='./networks/tutorial2_2.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+```{r} 
+g<-read.graph(file='./networks/tutorial2_3.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+### Measures of vertices clustering 
+**2pen triplet**
+```{r} 
+plot(graph.formula(A-B-C))
+```
+
+**Closed triplet**
+```{r} 
+plot(graph.formula(A-B-C-A))
+```
+
+**The transitivity**  $$\frac{the~number~of~closed~triplets}{the~total~number~of~triples~centered~on~each~of~the~vertices}$$
+
+$v_{i}$ - the i-th vertex of a graph
+$k_{i}$ - vertex degree (the number of edges incident to the vertex)
+$e_{ij}$ - the edge between i-th and j-th verticies
+
+**The local clustering coefficient for node $v_{i}$ ** $$C_{v}=\frac{the~number~of~closed~triplets~of~the~node}{the~number~of~triples~centered~around~the~node}$$
+
+**The global clustering coefficient** of the graph is average over all local clustering coefficients $C_{v}$.
+
+```{r}
+g <- graph.formula(A-B-C-A,C-D) 
+plot(g)
+transitivity(g, type = "local") 
+transitivity(g, type = "global") # transitivity(g) 
+transitivity(g, vids="C", type = "local") 
+transitivity(g, vids="A", type = "local")
+transitivity(g, vids="B", type = "local")
+```
+
+```{r}
+g <- graph.formula(A - D, B - D, C - D, A - B - C) 
+plot(g)
+ 
+transitivity(g, type = "local")  #  local clustering coefficient
+transitivity(g, vids="A", type = "local")
+transitivity(g, type = "global") #  global clustering coefficient
+transitivity(g, type="localaverage") # average the local clustering coefficient
+transitivity(g, vids="C", type = "local") 
+diameter(g)
+```
+
+```{r}
+gw <- graph.formula(A-B-C-A : D-E, E-Y-A) 
+plot(gw)
+transitivity(gw, vids="A", type = "local") 
+transitivity(gw, vids="B", type = "local")
+transitivity(gw, vids="C", type = "local")
+transitivity(gw, vids="D", type = "local")
+transitivity(gw, type="localaverage")
+transitivity(gw, type = "global")
+```
+

@@ -1,0 +1,60 @@
+---
+title: "Homework 1"
+author: "Pasha Perevedentsev"
+date: "12 Apr 2015"
+output: html_document
+---
+
+## Problem 1
+
+Recall from the lecture that probability density function (PDF) for power law distributed varaible is: $$p(x) = Cx^{-\alpha}$$
+Take logarithm of both sides: $$\log{p(x)} = \log{C} - \alpha \log{x}$$
+- Now you can use standard R functions like `lm()` to calculate $\alpha$ coefficient via linear regression. However you might find that it is a bad idea. 
+
+Alternatively, you can compute cumulative density function (CDF) $$f(x) = Pr(x < X)$$ of power law distribution. Good things about CDF of power law are:
+
+* It still has form of power law
+* On log-log plot it looks more like a line
+
+##### 1. Derive the formula for CDF function of power law $$F(x) = Pr(x < X)$$. It means you should calculate cumulative distribution function by integration of PDF function.
+
+
+##### 2. Download  [Internet Network](https://sites.google.com/site/cxnets/research222) \ and plot PDF and CDF of the degree distribution in log-log scale
+```{r}
+## Put your code here
+
+```
+
+##### 3. Fit linear regression model to PDF and CDF to estimate $\alpha$. Plot fitted models along with data
+```{r}
+## Put your code here
+
+```
+
+## Problem 2
+
+Kolmogorov-Smirnov test describes how similar are two distributions. In our case, when we have fitted model and original data, we can calculate their CDFs and Kolmogorov-Smirnov test shows us how well model approximates original data. In other words, it shows us the goodness-of-fit of our model. $$D = \max_{x} \|f(x|\alpha,x_{min}) - f_{emp}(x)\|\text{,}$$ where $f(x|\alpha,x_{min})$ and $f_{emp}(x)$ are theoretical and empitical cdfs respectively.
+![KS illustration](http://de.mathworks.com/help/releases/R2015a/stats/kstest_plot3.png)
+
+To estimate $x_{min}$ of the fitted power-law model we can use KS test: 
+
+* Pick some $x_{min}$ value
+* Fit power-law distribution to data (that is estimation of $\alpha$) -- now we have $f(x|\alpha,x_{min})$
+* Perform KS test -- compute $D$ statistic
+* Finnaly, choose $x_{min}^*$ that provides minimal value of $D$ statistic among all KS tests run above. 
+
+In R all this stuff can be done in one line of code.
+
+Again, use [Internet Network](https://sites.google.com/site/cxnets/research222) \
+Properly load it into R and do following tasks:
+
+##### 1. Using `power.law.fit` find `xmin` value and corresponding `alpha`
+```{r}
+## Put your code here
+
+```
+##### 2. Put fitted model along with empirical PDF (CDF)
+```{r}
+## Put your code here
+
+```
