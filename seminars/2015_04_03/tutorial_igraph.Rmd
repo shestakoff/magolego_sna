@@ -69,7 +69,7 @@ See more examples at http://igraph.org/r/doc/graph.constructors.html
 
 ## GAINING INFORMATION ABOUT GRAPH STRUCTURE
 
-$vcount$ and $ecount$ return integer constants – the number of vertex. $neighbors$ returns an integer vector – the number of neighbors for the vertex. $is.directed$ and $are.connected$ return boolean constants. You can use these function to know  the type of graph (directed or undirected) and to determine whether there is a link between vertices v1and v2 in graph $.get.edgelist$ function returns the list of edges in a graph. To obtain the adjacency matrix of a graph use $get.adjacency$ function (you also need to install package ’Matrix’in this case).
+$vcount$ and $ecount$ return integer constants ? the number of vertex. $neighbors$ returns an integer vector ? the number of neighbors for the vertex. $is.directed$ and $are.connected$ return boolean constants. You can use these function to know  the type of graph (directed or undirected) and to determine whether there is a link between vertices v1and v2 in graph $.get.edgelist$ function returns the list of edges in a graph. To obtain the adjacency matrix of a graph use $get.adjacency$ function (you also need to install package ?Matrix?in this case).
 
 ```{r}
 edges <- c(1,2, 3,2, 2,4)
@@ -119,13 +119,13 @@ The $read.graph$ function is able to read graphs in various representations from
 
 Load graph by edges:
 
-```{r}
-g <- read.graph("graph.txt", format="edgelist")
+```{r, eval=FALSE}
+g <- read.graph("./graph.txt", format="edgelist")
 ```
 
 Load graph in pajek format:
-```{r}
-g <- read.graph("graph.dl", format="pajek")
+```{r, eval=FALSE}
+g <- read.graph("./graph.dl", format="pajek")
 ```
 
 Create graph from datatable:
@@ -136,7 +136,7 @@ g <- graph.data.frame(advice_data_frame)
 ```
 
 Import graph from adjacency matrix:
-```{r}
+```{r, eval=FALSE}
 dat=read.csv(file.choose(),header=TRUE,row.names=1,check.names=FALSE)
 m=as.matrix(dat)
 net=graph.adjacency(m,mode="directed",weighted=TRUE,diag=FALSE)
@@ -147,7 +147,7 @@ edge.arrow.size=0.5)
 ## GRAPHS EXPORT
 
 You can write your graph to file in various formats.
-```{r}
+```{r, eval=FALSE}
 write.graph(g, file='my_graph.dl', format="pajek")
 write.graph(g, file='my_graph.txt', format="edgelist")
 ```

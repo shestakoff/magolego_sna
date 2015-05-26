@@ -140,18 +140,13 @@ plot(d,log = 'xy', xlab = 'Degree d', ylab = 'p(d)', main = 'Degree distribution
 
 Calculate average degree if the network and put a line for poisson distribution `dpois()` on the same plot `lines()`
 ```{r}
-k <- mean(degree(g))
-x <- 1:500
-p <- dpois(x = x, lambda = k)
-lines(x, p, col = 'red')
+## Your code is here
 ```
 
 Not even close! \
 To finish with it identife the regime of this network as if it was Random Network. Determine the size of GCC and convice yourself that it conflicts with ER theory.
 ```{r}
 ## Your code is here
-N <- vcount(g)
-c <- clusters(graph = g)
 ```
 
 ## Barabasi-Albert model. Preferential attachement

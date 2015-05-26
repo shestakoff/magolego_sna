@@ -1,0 +1,122 @@
+---
+title: "Lab1"
+author: "Pasha Perevedentsev"
+date: "10 Apr 2015"
+output: html_document
+---
+# Preparation
+- Load graph at http://leonidzhukov.net/hse/2015/sna
+- Start RStudio
+
+# Task 1
+
+```{r}
+library('igraph')
+library('ggplot2')
+```
+
+## Power laws
+Now, we are goint to generate power-law distribution syntetically. 
+
+During this part we will determine the meaning of $\alpha$ and try to estimate it.
+
+The functions below are for generating random variables distributed according to power-law and creating histogramm based on generated data.
+```{r, warning=FALSE}
+generate_dist = function(xmin, xmax, alpha, size) {
+  r = runif(size)
+  return((xmin^(-alpha+1)+r*(xmax^(-alpha+1)-xmin^(-alpha+1)))^(1/(-alpha+1)))
+}
+lorenz = function(h){
+  prob <- h$counts/sum(h$counts)
+  cumProb <- cumsum(prob)
+  wage <- cumsum(prob*h$mids)/sum(prob*h$mids)
+  return(data.frame(wage=wage, prob=cumProb))
+}
+cut_bins = function(x, breaks){
+  return(table(cut(x, breaks=breaks, labels=1:breaks)))
+}
+```
+
+### Meaning
+
+That is a very legitimate question? In fact $\alpha$ shows how fairly degree of the distribution is spread in the networks. To show this, lets generate distributions with various parametes.
+
+```{r, warning=FALSE}}
+xmin <- 1
+xmax <- 100
+alpha <- 2.1
+n <- 1000
+
+x <- generate_dist(xmin, xmax, alpha, n)
+h <- hist(x, breaks = length(unique(x)), plot = FALSE)
+l <- lorenz(h)
+qplot(data=l, x = wage, y = prob, geom = 'line')+
+  xlab('Proportion of top degrees') + 
+  ylab('Proportion edges')
+
+```
+As you may see, the bigger $\alpha$ is the more fairly degree is distrubuted among the vertices.
+
+### Estimation
+
+The next step is generating series from power laws having different $\alpha$:
+```{r, warning=FALSE}
+alphas = seq(2.1, 3.5 ,by=0.15)
+num_of_groups = length(alphas)
+n = 20
+data = sapply(alphas, function(alpha)
+  cut_bins(generate_dist(1, 40, alpha, 10000), 40)[0:n])
+```
+Now, $data$ keeps our series. Let's look at them:
+```{r, warning=FALSE}
+head(data, 3)
+```
+Every column contain generated series for particular $\alpha$. To plot this data we have to do some transformations.
+```{r, warning=FALSE}
+data = data.frame(data)
+data = stack(data)
+data$i = rep(1:n, num_of_groups)
+data$ind = factor(data$ind, levels = data$ind)
+```
+At the first two rows we have transformed our data to stacked form. Following lines add additional information to our dataset. Let's look at our data now:
+```{r, warning=FALSE}
+head(data)
+```
+
+Not let`s try to estimate corresponding coefficients via linear regression and mle methods:
+
+Linear regression:
+```{r, warning=FALSE}
+r = c()
+data$values = data$values
+for (i in unique(data$ind)){
+  lm.fit = lm(data = data[data$ind == i & data$values > 0,], formula = log(values) ~ log(i))
+  r = c(r, -coef(summary(lm.fit))[2,1])
+}
+plot(alphas, alphas-r)
+```
+
+Maximum likelyhood:
+```{r, warning=FALSE}
+r = c()
+for (i in unique(data$ind)){
+  prepared_data = data[data$ind == i & data$values > 0,]
+  t = c()
+  for (j in 1:nrow(prepared_data)) {
+    t = c(t, rep(prepared_data[j, 'i'], prepared_data[j, 'values']))
+  }
+  prepared_data = t
+  r = c(r, power.law.fit(t, 1, impelementation = "plfit")$alpha)
+}
+plot(alphas, alphas-r)
+```
+
+### Real data evaluation
+
+```{r, warning=FALSE}
+g = read.graph('fb_Princeton.txt',format='edgelist')
+d = degree(g)
+fit = power.law.fit(d+1, 1, implementation="plfit")
+print(fit$alpha)
+print(fit$KS.p)
+```

@@ -1,0 +1,237 @@
+---
+title: "Descriptive network analysis"
+output: html_document
+---
+
+*For the beginning don't forget to include the library*
+```{r}
+library("igraph")
+```
+
+## Diameter, radius, the shortest path, average length of all sortest paths
+
+**Path** is a finite or infinite sequence of edges which connect a sequence of vertices
+
+```{r}
+g<-graph.formula(1-2-3-4-5-6, 1-3-7, 1-8-4)
+plot(g)
+shortest.paths(g)
+```
+The shortest path from one node to others
+```{r}
+get.shortest.paths(g,1)$vpath
+get.shortest.paths(g,1,4)$vpath
+get.all.shortest.paths(g,1,4)$res
+diameter(g) # the length of the "longest shortest path"
+get.diameter(g)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+radius(g) # is the length of the shortest paths among shortest ones
+```
+
+The shortest path between two certain nodes
+```{r}
+get.shortest.paths(g,1,4)$vpath # only one arbitary path
+get.all.shortest.paths(g,1,4)$res #  all paths
+diameter(g) # the length of the "longest shortest path"
+```
+The longest path among shortest paths
+```{r}
+diameter(g) # the length of the "longest shortest path"
+get.diameter(g)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+radius(g) # is the length of the shortest paths among shortest ones
+```
+Recall from the previous seminar
+```{r}
+vcount(g) # number of nodes 
+ecount(g) # number of edges
+
+E(g) # list of edges
+V(g) # list of nodes 
+```
+
+**The density** of a graph is the ratio of the number of edges and the number of possible edges.
+```{r}
+graph.density(g)
+```
+
+#### The shortest path length distribution 
+*Geting a histogram, by calculating the shortest path length between each pair of vertices*
+```{r}
+g<-graph.formula(1-2-3-4-5-6, 1-3-7, 1-8-4, 3-9-10-12, 11-12-13-3)
+tab <- as.table(path.length.hist(g)$res)
+names(tab) <- 1:length(tab)
+barplot(tab)
+```
+
+##### Zachary's Karate Club
+*The data was collected from the members of a university karate club by Wayne Zachary in 1977. Each node represents a member of the club, and each edge represents a tie between two members of the club. Zachary studied conflict and fission in this community network, as the karate club was split into two separate clubs.  The network is very small: it has 34 vertices and 78 undirected edges.*
+```{r}
+g <- graph.famous("Zachary")
+plot(g)
+graph.density(g)
+diameter(g) # the length of the "longest shortest path"
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g,layout = layout.fruchterman.reingold)
+tab <- as.table(path.length.hist(g)$res)
+names(tab) <- 1:length(tab)
+barplot(tab,legend = c(path.length.hist(g)$res),main = "The shortest path lengths distribution", col = c("lightblue", "mistyrose", "lightcyan","lavender", "lightgreen"),args.legend = list(title = "The number of paths"),xlab = "Path length", ylab = "The number of paths" )
+```
+
+##### High-energy physics citation network
+See more information on <http://snap.stanford.edu/data/cit-HepPh.html>
+```{r}
+g <- read.graph("C://Users/Tanya/Documents/Cit-HepPh.txt", format="edgelist")
+vcount(g) 
+ecount(g)
+tab <- as.table(path.length.hist(g)$res)
+max(tab)
+min(tab)
+names(tab) <- 1:length(tab)
+barplot(tab,main = "The shortest path lengths distribution",xlab = "Path length", ylab = "The number of paths", cex.names = 0.5)
+```
+
+#### Other examples...
+###### 1. Ring graph 
+```{r}
+g <- graph.ring(8)
+plot(g)
+shortest.paths(g)
+get.diameter(g)
+diameter(g)
+radius(g)
+```
+
+###### 2. An arbitary graph
+```{r}
+g <- graph.formula(1-2-3-4-5-6,7-8-9-3-10, 4-11)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g)
+shortest.paths(g)
+diameter(g)
+get.diameter(g)
+radius(g)
+```
+
+###### 3. Weighted graph
+```{r}
+set.seed(1)
+g <- graph.formula(1-2-3-4-5-1)
+E(g)$weight <- sample(seq_len(ecount(g)+5))
+E(g)$color <- "blue"
+E(g, path=get.diameter(g))$color <- "red"
+plot(g,edge.label = E(g)$weight)
+shortest.paths(g)
+diameter(g)
+diameter(g, weights=NA)
+E(g)$color <- "blue"
+E(g, path=get.diameter(g, weights=NA))$color <- "red"
+plot(g, edge.label = E(g)$weight)
+shortest.paths(g, weights=NA)
+```
+
+## Connected components of a graph
+
+**A connected component** is a maximal connected subgraph of G. Each vertex belongs to exactly one connected component, as does each edge.
+To check, whether the graph is connected use command 
+```{r, eval=FALSE} 
+is.connected(g)
+```
+
+A directed graph is called **weakly connected** if replacing all of its directed edges with undirected edges produces a connected (undirected) graph. It is **connected** if it contains a directed path from u to v or a directed path from v to u for every pair of vertices u, v. 
+It is **strongly connected** if it contains a directed path from u to v and a directed path from v to u for every pair of vertices u, v.
+```{r, eval=FALSE} 
+clusters(graph, mode=c("weak", "strong")) # select the required mode
+no.clusters(graph, mode=c("weak", "strong"))
+``` 
+
+#### Directed graphs
+```{r} 
+g<-read.graph(file='tutorial2_1.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+```{r} 
+g<-read.graph(file='tutorial2_2.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+```{r} 
+g<-read.graph(file='tutorial2_3.txt', format="edgelist")
+plot(g)
+clusters(g, mode=c("weak")) # select the required mode
+clusters(g, mode=c("strong")) # select the required mode
+lst <-cluster.distribution(g, cumulative = FALSE)
+distr<-table(lst,seq(1,length(lst)))[2,]
+barplot(distr,main = "The maximal connected component sizes distribution", ylab = "The number of components",xlab = "Size")
+```
+
+## Measures of vertices clustering 
+**Îpen triplet**
+```{r} 
+plot(graph.formula(A-B-C))
+```
+
+**Closed triplet**
+```{r} 
+plot(graph.formula(A-B-C-A))
+```
+
+**The global clustering coefficient (or transitivity)**  $$\frac{the~number~of~closed~triplets}{the~total~number~of~triples~centered~on~oach~of~the~vertices}$$
+
+$v_{i}$ - the i-th vertex of a graph
+$k_{i}$ - vertex degree (the number of edges incident to the vertex)
+$e_{ij}$ - the edge between i-th and j-th verticies
+
+**The local clustering coefficient for node $v_{i}$ ** $$C_{v}=\frac{1}{k\left ( k -1 \right )} \underset{u \in Neighbors\left ( v \right )}{\sum e_{uv}}$$
+
+```{r}
+g <- graph.formula(A-B-C-A,C-D) 
+plot(g)
+transitivity(g, type = "local") 
+transitivity(g, type = "global") # transitivity(g) 
+transitivity(g, vids="C", type = "local") 
+transitivity(g, vids="A", type = "local")
+transitivity(g, vids="B", type = "local")
+```
+
+```{r}
+g <- graph.formula(A - D, B - D, C - D, A - B - C) 
+plot(g)
+ 
+transitivity(g, type = "local")  #  local clustering coefficient
+transitivity(g, vids="A", type = "local")
+transitivity(g, type = "global") #  global clustering coefficient
+transitivity(g, type="localaverage") # average the local clustering coefficient
+transitivity(g, vids="C", type = "local") 
+diameter(g)
+```
+
+```{r}
+gw <- graph.formula(A-B-C-A : D-E, E-Y-A) 
+plot(gw)
+transitivity(gw, vids="A", type = "local") 
+transitivity(gw, vids="B", type = "local")
+transitivity(gw, vids="C", type = "local")
+transitivity(gw, vids="D", type = "local")
+transitivity(gw, type="localaverage")
+transitivity(gw, type = "global")
+```
+
+

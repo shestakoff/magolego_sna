@@ -1,0 +1,304 @@
+---
+title: "Magolego SNA - Lab 4"
+author: "Dmitry Petrov, Yulia Dodonova, Andrey Shestakov"
+date: "04/24/2015"
+output: 
+  html_document:
+    toc: true
+---
+```{r}
+library('igraph')
+```
+
+First, let's look at a simple example graph:
+
+## Zachary karate club
+
+Remember Zachary karate club? You looked at it on your second lab.
+
+*The data was collected from the members of a university karate club by Wayne Zachary in 1977. Each node represents a member of the club, and each edge represents a tie between two members of the club. Zachary studied conflict and fission in this community network, as the karate club was split into two separate clubs.  The network is very small: it has 34 vertices and 78 undirected edges.*
+
+This is how it looks:
+
+```{r}
+z <- graph.famous("Zachary")
+plot(z,layout = layout.fruchterman.reingold)
+```
+
+### Degree centrality
+
+Now we will compute various centrality measures. First, degree centrality:
+
+```{r}
+deg=degree(z)
+```
+
+We will plot the karate club graph with node sizes proportional to different centrality metrics and node colors changing depending on centrality.
+
+First, let's fix node coordinates to be able to compare graphs. We will produce coordinates and use them as layout for plotting:
+
+
+```{r}
+# And we will keep the same layout:
+lay <- layout.fruchterman.reingold(z)
+lay
+```
+
+Now, we want node colors to change depending on the centrality. Say, high centrality nodes will be green, and low centrality nodes will be yellow. We set the pale
+
+```{r}
+fine = 500 # this will adjust the resolving power.
+palette = colorRampPalette(c('blue','red'))
+```
+
+Now we produce a vector of color codes:
+
+```{r}
+degCol = palette(fine)[as.numeric(cut(deg,breaks = fine))]
+```
+
+We also  want node sizes to be proportional to node centrality. This is straightforward, except that we will use a proportionality coefficient to improve the layout. Now produce a graph:
+
+```{r}
+plot(z, layout=lay, vertex.color=degCol, vertex.size=deg*1.5, vertex.label.cex=0.6, main="Degree centrality")
+```
+
+
+### Closeness centrality
+
+Now compute closeness centrality and plot the second graph. Simply use the command `closeness`
+
+```{r}
+clos=closeness(z)
+#Look at the values:
+clos
+
+# Plot the graph:
+closCol = palette(fine)[as.numeric(cut(clos,breaks = fine))]
+plot(z,layout = lay, vertex.color=closCol, vertex.size=clos*1500, vertex.label.cex=0.6, main="Closeness centrality")
+```
+
+### Betweness centrality
+
+Compute betwenness centrality. Can you guess the command? Right, it's `betweenness`
+
+```{r}
+betw <- betweenness(z)
+#Look at the values:
+betw
+#Plot the graph
+betwCol = palette(fine)[as.numeric(cut(betw,breaks = fine))]
+plot(z,layout = lay, vertex.color=betwCol, vertex.size=betw*0.2, vertex.label.cex=0.6, main="Betwenness centrality")
+```
+
+### Eigenvector centrality
+
+Now, eigenvector centrality. Use the command `evcent`
+
+```{r}
+ev <- evcent(z)
+
+# See what's in the output:
+ev
+```
+
+The function returns the vector of eigenvector centralities, the eigenvalue corresponding to the eigenvector, and a list of options used for computations. We only need the centrality values, don't we?
+
+```{r}
+ev <- evcent(z)$vector
+# See what's in the output:
+ev
+# Produce the plot:
+evCol = palette(fine)[as.numeric(cut(ev,breaks = fine))]
+plot(z,layout = lay, vertex.size=ev*40, vertex.color=evCol, vertex.label.cex=0.6, main="Eigenvector centrality")
+```
+
+### Bonacich power centrality
+
+Bonachich power centrality:
+
+```{r}
+bon <- bonpow(z, rescale=TRUE)
+bon
+#Produce the plot
+bonCol = palette(fine)[as.numeric(cut(bon,breaks = fine))]
+plot(z,layout = lay, vertex.size=bon*400, vertex.color=bonCol, vertex.label.cex=0.6, main="Bonachich power centrality")
+```
+
+###Alpha centrality
+
+Alpha centrality:
+
+```{r}
+alpha <- alpha.centrality(z)
+alpha
+#Produce the plot
+alphaCol = palette(fine)[as.numeric(cut(alpha,breaks = fine))]
+plot(z,layout = lay, vertex.size=alpha*0.2, vertex.color=alphaCol, vertex.label.cex=0.6, main="Alpha centrality")
+```
+
+###Compare measures
+
+Now, let's plot all graphs together. Remember how to produce several plots on the same graph?
+
+```{r}
+# We will plot 6 graphs in 2 rows and 3 columns:
+op <- par(mfrow = c(2, 3))
+#Remember we assigned a name to each graph?
+plot(z, layout=lay, vertex.color=degCol, vertex.size=deg*1.5, vertex.label.cex=0.6, main="Degree centrality")
+plot(z,layout = lay, vertex.color=closCol, vertex.size=clos*1500, vertex.label.cex=0.6, main="Closeness centrality")
+plot(z,layout = lay, vertex.color=betwCol, vertex.size=betw*0.2, vertex.label.cex=0.6, main="Betwenness centrality")
+plot(z,layout = lay, vertex.size=ev*40, vertex.color=evCol, vertex.label.cex=0.6, main="Eigenvector centrality")
+plot(z,layout = lay, vertex.size=bon*500, vertex.color=bonCol, vertex.label.cex=0.6, main="Bonachich power centrality")
+plot(z,layout = lay, vertex.size=alpha*0.2, vertex.color=alphaCol, vertex.label.cex=0.6, main="Alpha centrality")
+par(op)
+```
+
+Print degrees with maximal values for each ranking:
+```{r}
+which.max(deg)
+which.max(clos)
+which.max(betw)
+which.max(ev)
+which.max(bon)
+which.max(alpha)
+```
+
+Now we will plot degree metrics against each other. We will only plot degree centrality, closeness, betweeness and eigenvector centralities. You can plot the remaining at home.
+
+
+```{r}
+op <- par(mfrow = c(2, 3))
+plot(deg, clos, xlab="Degree", ylab="Closeness", col="blue")
+plot(deg, betw, xlab="Degree", ylab="Betweenness", col="blue")
+plot(deg, ev, xlab="Degree", ylab="Eigenvector", col="blue")
+plot(clos, betw, xlab="Closeness", ylab="Betweenness", col="blue")
+plot(clos, ev, xlab="Closeness", ylab="Eigenvector", col="blue")
+plot(betw, ev, xlab="Betweenness", ylab="Eigenvector", col="blue")
+par(op)
+```
+
+## Very simple examples
+### Centrality metrics for a path
+
+We will create a path of 5 nodes, plot it, compute and output centrality metrics for the nodes:
+
+```{r}
+p <- graph.tree(5, children=1, mode="undirected")
+plot(p)
+ptable <- cbind(degree(p), round(closeness(p), 3), betweenness(p), round(evcent(p)$vector, 3))
+titles <- c("Degree", "Closeness", "Betweenness", "Eigenvector")
+colnames(ptable) <- titles
+ptable
+```
+
+### Centrality metrics for a cyrcle
+Now we will create a cyrcle of 5 nodes, plot it, compute and output centrality metrics for the nodes:
+
+```{r}
+cyr <- graph.ring(5)
+plot(cyr)
+cyrtable <- cbind(degree(cyr), round(closeness(cyr), 3), betweenness(cyr), round(evcent(cyr)$vector, 3))
+colnames(cyrtable) <- titles
+cyrtable
+```
+
+### Centrality metrics for a star
+Finally, we will do the same things for a star of 5 nodes:
+
+```{r}
+star <- graph.star(5, mode="undirected")
+plot(star)
+startable <- cbind(degree(star), round(closeness(star), 3), betweenness(star), round(evcent(star)$vector, 3))
+colnames(startable) <- titles
+startable
+```
+
+## Political blogs
+Please download the network from [here](http://www-personal.umich.edu/~mejn/netdata/polblogs.zip). This is a directed network of hyperlinks between weblogs on US politics, recorded in 2005. Each node has an attribute 'value' correspondent to its political side: 0 - liberal, 1 - conservative.
+
+### Load the data
+
+```{r}
+PB <- read.graph(file = './polblogs.gml', format = 'gml')
+vcount(PB)
+ecount(PB)
+attr <- vertex.attributes(graph = PB)
+```
+
+And you can plot it if you wish (it takes some time..)
+```{r, eval = FALSE}
+plot(PB, vertex.label = NA, vertex.size = 3.5, 
+     layout = layout.fruchterman.reingold, 
+     edge.arrow.size = 0.2)
+```
+
+### Compute degree centrality, PageRank, Hubs and Authorities
+
+Now we will compute in- and out- degree centralities, PageRank, Hubs and Authorities for this network. Yet again, we will use igraph functions:
+
+```{r}
+#Incoming degrees:
+indegPB=degree(PB, mode="in")
+
+#Outgoing degrees:
+outdegPB=degree(PB, mode="out")
+
+#PageRank:
+prPB=page.rank(PB)$vector
+## Note that page.rank function returns a vector of values, an eigenvalue and computational options. We only need a vector here. The same concerns hub and authority scores.
+
+#Hubs:
+hPB=hub.score(PB)$vector
+
+#Authorities:
+authPB=authority.score(PB)$vector
+```
+
+### Output the results
+
+First, let's plot these measures agains each other. We will only plot several pairs, you can do the remaining at home.
+
+```{r}
+op <- par(mfrow = c(2, 3))
+plot(prPB, hPB, xlab="PageRank", ylab="Hubs", col="blue")
+plot(prPB, authPB, xlab="PageRank", ylab="Authorities", col="blue")
+plot(hPB, authPB, xlab="Hubs", ylab="Authorities", col="blue")
+plot(indegPB, outdegPB, xlab="In- degree", ylab="Out- degree", col="blue")
+plot(indegPB, authPB, xlab="In- degree", ylab="Authorities", col="blue")
+plot(outdegPB, hPB, xlab="Out- degree", ylab="Hubs", col="blue")
+par(op)
+```
+
+Now we will print top ten names in each ranking:
+
+```{r}
+#For in- degrees:
+indegnamesPB=which(indegPB>sort(indegPB)[vcount(PB)-10])
+
+#For out- degrees:
+outdegnamesPB=which(outdegPB>sort(outdegPB)[vcount(PB)-10])
+
+#For PageRank:
+prnamesPB=which(prPB>sort(prPB)[vcount(PB)-10])
+
+#For Hubs:
+hnamesPB=which(hPB>sort(hPB)[vcount(PB)-10])
+
+#For Authorities:
+authnamesPB=which(authPB>sort(authPB)[vcount(PB)-10])
+
+##Create a matrix to output:
+topnamesPB=cbind(indegnamesPB, authnamesPB, prnamesPB, outdegnamesPB, hnamesPB)
+#Assign column names:
+colnames(topnamesPB) <- c("In- degree", "Authorities", "PageRank", "Out- degree", "Hubs")
+topnamesPB
+```
+
+We want a nice table in HTML, don't we? Let's use an `xtable` package. Please install it now, load the library and use `xtable` function:
+
+```{r, results="asis"}
+library(xtable)
+toptablePB <- xtable(topnamesPB)
+print(toptablePB, floating=FALSE, type="html")
+```

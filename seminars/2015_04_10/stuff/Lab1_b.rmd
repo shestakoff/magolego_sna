@@ -1,0 +1,155 @@
+---
+title: "Lab1"
+author: "Pasha Perevedentsev"
+date: "10 Apr 2015"
+output: pdf_document
+---
+# Preparation
+- Load graph at http://leonidzhukov.net/hse/2015/sna
+- Start RStudio
+
+# Task 1
+
+```{r}
+library('igraph')
+library('ggplot2')
+```
+
+Now, we are going to generate power distribution syntetically. The functions below are for generating random variables distributed according to power law and creating histogramm based on generated data.
+
+```{r, warning=FALSE}
+generate_dist = function(xmin, xmax, alpha, size) {
+  #uniformly distributed variables
+  r = runif(size)
+  #generate power distributed variables from uniformly ones
+  return((xmin^(-alpha+1)+r*(xmax^(-alpha+1)-xmin^(-alpha+1)))^(1/(-alpha+1)))
+}
+#commands bellow separate our date into bins with predefined number of bins
+cut_bins = function(x, breaks){
+  return(table(cut(x, breaks=breaks, labels=1:breaks)))
+}
+```
+
+The next step is generating series from power laws having different $\alpha$:
+
+```{r, warning=FALSE}
+alphas = seq(2.1, 3.5 ,by=0.15)
+num_of_groups = length(alphas)
+n = 20
+#sapply applies function to every element of list with alphas
+data = sapply(alphas, function(alpha)
+  cut_bins(generate_dist(1, 40, alpha, 10000), 40)[0:n])
+#the result is matrix where each column correspond
+#to bins generated from sets of variables with different alphas
+```
+
+Now, $data$ keeps our series. Let's look at them:
+
+```{r, warning=FALSE}
+head(data, 3)
+```
+
+Every column contain generated series for particular $\alpha$. To plot this data we have to do some transformations.
+
+```{r, warning=FALSE}
+data = data.frame(data)
+colnames(data) = sapply(alphas, function(x) toString(x))
+data = stack(data)
+data$i = rep(1:n, num_of_groups)
+data$ind = factor(data$ind, levels = data$ind)
+```
+
+At the first three rows we have transformed our data to stacked form. Following lines add additional information to our dataset. Let's look at our data now:
+
+```{r, warning=FALSE}
+head(data)
+```
+
+More informative representation is a graph:
+
+```{r, warning=FALSE}
+p = ggplot(data, aes(x=i, y=values, group=ind, colour=ind))
+p + geom_line() + xlab('Amount of connections') + ylab('Number of vertexes')
+``` 
+
+It can be (hardly) seen that growth of $\alpha$ leads to smoothing of the curve. In other words, bigger 
+$\alpha$ corresponds to more equal distribution of edges.
+
+Assume we have data about degrees of graph's nodes. What the ways of calculating $\alpha$ parameter?
+Recall that probability density function (PDF) has following form:
+$$p(x)=Cx^{-\alpha}$$
+
+Logarithm both sides: $$\log{p(x)}=\log(C) - \alpha \log{x}$$
+Calculate $\log{p(x)}$ and $\log{x}$ from observed data and fit linear regression to find $\alpha$:
+
+```{r, warning=FALSE}
+r = c()
+#As you remember, we have stacked data.
+#We are going to interate over sets of rows having
+#different values of indicator variable
+for (i in unique(data$ind)){
+  #Take rows with particular indicator and value bigger then zero
+  prepared_data = data[data$ind == i & data$values > 0,]
+  #Regress and store results to lm.fit
+  lm.fit = lm(data = prepared_data, formula = log(values) ~ log(i))
+  #Extract coefficient from regression and store it into r
+  r = c(r, -coef(summary(lm.fit))[2,1])
+}
+plot(alphas, alphas-r, main='Alpha error against aplha (PDF Regression)')
+```
+
+Another way is to use cumulative distribution function (CDF): $cdf(x) = \int_{-\inf}^{x} p(x) dx = 1 - Cx^{1-\alpha}$:
+
+```{r, warning=FALSE}
+r = c()
+for (i in unique(data$ind)){
+  prepared_data = data[data$ind == i & data$values > 0,]
+  t = c()
+  #Following loop restores original form of data
+  for (j in 1:nrow(prepared_data)) {
+    t = c(t, rep(prepared_data[j, 'i'], prepared_data[j, 'values']))
+  }
+  prepared_data = t  
+  #Then we create data.frame containing values of CDF function
+  df = data.frame(c(1:n), c(sapply(1:n, ecdf(prepared_data))))
+  colnames(df) = c('i', 'v')
+  df$v = 1 - df$v
+  #Remove singularities
+  df = df[df$v > 0, ]
+  lm.fit = lm(data = df, formula = log(v) ~ log(i))
+  r = c(r, 1-coef(summary(lm.fit))[2,1] )
+}
+plot(alphas, alphas-r,main='Alpha error against aplha (CDF regression)')
+```
+
+Or we can just use embedded function of igraph:
+
+```{r, warning=FALSE}
+r = c()
+for (i in unique(data$ind)){
+  prepared_data = data[data$ind == i & data$values > 0,]
+  t = c()
+  for (j in 1:nrow(prepared_data)) {
+    t = c(t, rep(prepared_data[j, 'i'], prepared_data[j, 'values']))
+  }
+  prepared_data = t
+  r = c(r, power.law.fit(prepared_data, 1, impelementation = "plfit")$alpha)
+}
+plot(alphas, alphas-r, main='Alpha error against aplha (Maximal LL)')
+```
+
+The final part of the task is to calculate parameters and goodness-of-fit for several networks:
+- link to network 1
+- link to network 2
+
+Hints:
+
+`g = read.graph ...`
+
+`degree(g)`
+
+`power.law.fit`
+
+`fit$alpha`
+
+`fit$KS.p`
