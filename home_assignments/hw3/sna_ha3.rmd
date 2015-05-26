@@ -1,0 +1,75 @@
+---
+title: "Social Network Analysis <br/> Home Assignment 3"
+date: due date - 05.06.2015 23:59
+author: "{Your Name}"
+output:
+  html_document:
+    toc: true 
+---
+# Network communities
+Please send your reports to hse.ntwks@gmail.com with the subject of of the following structure:<br/>
+*[MAGOLEGO SNA 2015] {LastName} {First Name} HA{Number}*
+
+Late submission policy: -1 point per day
+
+Use this file as a template for your report.\
+Support your computations with figures and comments. Send ONLY .Rmd versions of your report.
+
+```{r, echo=FALSE}
+library(igraph)
+```
+
+
+## Yahoo Music Network
+
+For this assignment, you have to load [the part of Yahoo Music Network](https://drive.google.com/file/d/0Bwd5a7NScgMtNElfOFdSbE1UYnM/view?usp=sharing). Archive contains network in GML format and corresponding list of artists.
+
+```{r}
+## Put your code here
+
+```
+
+Edges in this network appear if enough number of users have given ratings to both music bands. Note, that edges are weighted with similarity of the ratings.
+
+
+### 1. Preprocessing
+
+This network needs to be preprocessed. Do the steps, described on seminar, to make it look properly. How many vertices and edges were deleted?
+
+```{r}
+## Put your code here
+
+```
+
+### 2. Clustering
+
+Define clusters for this networks using one of the algorithms described on lectures and seminars:
+```{r}
+## Put your code here
+
+```
+
+Compute density of obtained clusters:
+```{r}
+## Put your code here
+
+```
+
+Compute the ratio of inner clusters connections to outer ones:
+```{r}
+## Put your code here
+
+```
+
+
+### 3. Visualization & interpretation
+
+Visulize five of the most dense clusters. Use names of artists as node labels on the graph.
+```{r}
+## Put your code here
+
+```
+
+<b> (Extra task) </b>Try to interpret (using Wikipedia or other resources) obtained clusters.
+
+*Insert comments here*

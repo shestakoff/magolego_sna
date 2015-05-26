@@ -1,0 +1,140 @@
+---
+title: "Social Network Analysis <br/> Home Assignment 3"
+date: due date - 05.06.2015 23:59
+author: "{Your Name}"
+output:
+  html_document:
+    toc: true 
+---
+# Network communities
+Please send your reports to hse.ntwks@gmail.com with the subject of of the following structure:<br/>
+*[MAGOLEGO SNA 2015] {LastName} {First Name} HA{Number}*
+
+Late submission policy: -1 point per day
+
+Use this file as a template for your report.\
+Support your computations with figures and comments. Send ONLY .Rmd versions of your report.
+
+```{r, echo=FALSE}
+library(igraph)
+```
+
+
+## Yahoo Music Network
+
+For this assignment, you have to load [the part of Yahoo Music Network](https://drive.google.com/file/d/0Bwd5a7NScgMtNElfOFdSbE1UYnM/view?usp=sharing). Archive contains network in GML format and corresponding list of artists.
+
+```{r}
+## Put your code here
+g <- read.graph(file = "music2K.gml", format = "gml")
+art <- scan('artists.txt', character(0), sep = "\n")
+
+for (cnt in 1:length(V(g)))
+    V(g)$label[cnt] <- art[cnt]
+```
+
+Edges in this network appear if enough number of users have given ratings to both music bands. Note, that edges are weighted with similarity of the ratings.
+
+
+### 1. Preprocessing
+
+This network needs to be preprocessed. Do the steps, described on seminar, to make it look properly. How many vertices and edges were deleted?
+
+```{r}
+## Put your code here
+vertex1 <- length(V(g))
+edges1 <- length(E(g))
+g <- delete.vertices(g, degree(g) == 0)
+g <- simplify(g)
+vertex2 <- length(V(g))
+edges2 <- length(E(g))
+
+vertex1 - vertex2
+edges1 - edges2
+
+```
+
+### 2. Clustering
+
+Define clusters for this networks using one of the algorithms described on lectures and seminars:
+```{r}
+## Put your code here
+eb <- fastgreedy.community(g)
+```
+
+Compute density of obtained clusters:
+```{r}
+## Put your code here
+elems <- list()
+densities <- list()
+for (i in 1:max(eb$membership)){
+  g1 <- induced.subgraph(g, eb$membership == i)  
+    
+  e1 <- sum(eb$membership == i)
+  d1 <- graph.density(g1)
+  elems[i] <- e1
+  densities[i] <- d1
+  
+  print(sprintf("Cluster # %d with %d elements has density = %.4f", i, e1, d1))
+  }
+```
+
+Compute the ratio of inner clusters connections to outer ones:
+```{r}
+## Put your code here
+for (i in 1:max(eb$membership)){
+  h = induced.subgraph(g, eb$membership == i)
+  edges_all = length(E(g))
+  edges_in = length(E(h))
+  edges_out = length(E(induced.subgraph(g,!(eb$membership == i))))
+  edges_between = edges_all - edges_in - edges_out
+  print(sprintf("Ratio for cluster # %d = %.3f",i, edges_in/edges_between))
+}
+```
+
+
+### 3. Visualization & interpretation
+
+Visulize three of the biggest clusters.
+```{r}
+## Put your code here
+index_max1 <- which.max(elems)
+elems[index_max1] <- 0
+index_max2 <- which.max(elems)
+elems[index_max2] <- 0
+index_max3 <- which.max(elems)
+
+subgraph <- induced.subgraph(g,(c((which(eb$membership == index_max1)),(which(eb$membership == index_max2)),((which(eb$membership == index_max3))))))
+V(subgraph)[which(eb$membership == index_max1)]$color = 'black'
+V(subgraph)[which(eb$membership == index_max2)]$color = 'blue'
+V(subgraph)[which(eb$membership == index_max3)]$color = 'red'
+
+plot(subgraph, layout=layout.fruchterman.reingold, vertex.size=3, edge.width = 0.005, vertex.label=NA)
+```
+
+Visulize three of the most dense clusters. Use artists' names as labels.
+```{r}
+index_max1 <- which.max(densities)
+densities[index_max1] <- 0
+index_max2 <- which.max(densities)
+densities[index_max2] <- 0
+index_max3 <- which.max(densities)
+
+subgraph <- induced.subgraph(g,which(eb$membership == index_max1))
+plot(subgraph, layout=layout.circle)
+```
+
+
+```{r}
+subgraph <- induced.subgraph(g,which(eb$membership == index_max2))
+plot(subgraph, layout=layout.circle)
+```
+
+```{r}
+subgraph <- induced.subgraph(g,which(eb$membership == index_max3))
+plot(subgraph, layout=layout.circle)
+```
+
+<b> (Extra task) </b>Try to interpret (using Wikipedia or other resources) obtained clusters.
+
+*Insert comments here*

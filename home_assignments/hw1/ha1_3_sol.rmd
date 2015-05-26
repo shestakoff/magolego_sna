@@ -1,0 +1,105 @@
+---
+title: "Social Network Analysis - Home Assigment 1"
+author: "<Your Name>"
+output:
+  html_document:
+    toc: true 
+---
+## Descriptive network analysis
+Please send your reports to hse.ntwks@gmail.com with the subject of of the following structure: [MAGOLEGO SNA 2015] {LastName} {First Name} HA{Number}
+
+Use this file as a template for your report.\
+Support your computations with figures and comments. Send BOTH .html and .Rmd versions of your report.
+
+## Problem 3.
+For [Wikipedia vote network](http://snap.stanford.edu/data/wiki-Vote.html) (clear up comments in the beging of the file) derive the following characreristics:\
+1. The number of vertices and edges.\
+2. The number of loops (edges that start and end at the same vertex)\
+3. The number of symmetrical edges\
+4. Degree distribution (without considering the direction)\
+5. The number of nodes with a degree greater than 0 and with a degree greater than 15\
+6. Find strongly connected components and their sizes.\
+7. Take subgraph of the original graph, which consists of the first 80 vertices and set color into red for those nodes in which the number of incoming edges is greater than the number of outgoing edges.Otherwise, set color in blue. For nodes with the same number of incoming and outgoing edges set color into green. Besides that, increase the size of vertices with a maximum value of transitivity (for example, you may set size into 10 for these nodes and 1 for others). \
+8.Take subgraph from the previous task and find maximal connected component. For this component highlight any way that corresponds to the diameter of the subgraph. How many such paths are in this graph?
+
+### Script
+
+```{r, echo=FALSE}
+library(igraph)
+g <- read.graph("./Wiki-Vote.txt", format="edgelist")
+```
+##### 1. The number of vertices and edges.
+```{r}
+V <- V(g)
+d <- degree(g)
+g <- delete.vertices(graph = g, v = V[d==0])
+ecount(g)
+vcount(g)
+```
+
+##### 2. The number of loops (edges that start and end at the same vertex)
+```{r}
+sum(is.loop(g)==TRUE) 
+```
+##### 3. The number of symmetrical edges
+```{r}
+A <-get.adjacency(g)
+diag(A)<-0 # ?????????? ???????????? ????? - ??? ????????????
+A2 <-A %*% A #?????????? ???????????? ?????
+s<- sum(A2 == 1)
+diag(A2)<-0
+s-sum(A2==1)
+```
+##### 4. Degree distribution
+```{r}
+d = degree(g)
+h = hist(d, length(unique(d)))
+```
+
+```{r, eval=FALSE}
+d_in<-degree(g,mode = "in") 
+h_in <- hist(d_in, length(unique(d_in)))
+d_out <-degree(g,mode = "out") 
+h_out <- hist(d_out, length(unique(d_out)))
+```
+##### 5. The number of nodes with a degree greater than 0 and with a degree greater than 15
+```{r}
+sum(d > 1) # ?????????? ????? ? 0-? ????????
+sum(d > 15) # ?????????? ????? ?? ???????? ?????? 15
+```
+##### 6. Find strongly connected components and thier sizes.
+```{r}
+cc<-clusters(g, mode=c("strong")) # ??????????????? ?????????? 
+cc$no # ?????????? ? ?? ??????? (???????????? ??????? ????)
+table(cc$csize)
+```
+
+```{r,  eval=FALSE}
+cc<-clusters(g, mode=c("weak")) # ????? ????????? ?????????? 
+cc$no # ?????????? ? ?? ??????? (???????????? ??????? ????)
+table(cc$csize)
+```
+##### 7. Take subgraph of the original graph, which consists of the first 80 vertices and set color into red for those nodes in which the number of incoming edges is greater than the number of outgoing edges.Otherwise, set color in blue. For nodes with the same number of incoming and outgoing edges set color into green. Besides that, increase the size of vertices with a maximum value of transitivity (for example, you may set size into 10 for these nodes and 1 for others). \
+```{r}
+sub_g = induced.subgraph(g, V(g)[1:80])
+V(sub_g)$d_in <- degree(sub_g,mode = "in") 
+V(sub_g)$d_out <- degree(sub_g,mode = "out") 
+V(sub_g)$color<-ifelse(V(sub_g)$d_in==V(sub_g)$d_out, 'green',ifelse(V(sub_g)$d_in>V(sub_g)$d_out, 'blue', 'red'))
+V(sub_g)$size<-ifelse(transitivity(sub_g, type="local",isolates="zero")==1, 10,5)
+plot(sub_g,layout=layout.spring,vertex.color=V(g)$color, vertex.size=V(g)$size,vertex.label=NA)
+```
+
+##### 8.Take subgraph from the previous task and find maximal connected component. For this component highlight any way that corresponds to the diameter of the subgraph. HHow many such paths are in this graph?\
+
+```{r}
+cc<-clusters(sub_g, mode=c("strong"))
+V(sub_g)$membership<-clusters(sub_g, mode=c("weak"))$membership
+con_comp = induced.subgraph(sub_g, V(sub_g)[membership==4])
+path_diam<-get.diameter(con_comp)
+E(con_comp,path=path_diam)$color<-"darkgreen"
+E(con_comp,path=path_diam)$color<-"darkgreen"
+E(con_comp,path=path_diam)$width<-2
+plot.igraph(con_comp,edge.width=E(sub_g)$width,edge.color=E(sub_g)$color, vertex.size = 1,layout=layout.fruchterman.reingold,vertex.label=NA) 
+length(which(shortest.paths(con_comp, mode = "out")==diameter(con_comp,directed = TRUE)-1, arr.ind = TRUE, useNames = FALSE))/2
+```
+
