@@ -1,0 +1,12 @@
+source target weight
+a b 0.45
+a c 0.5
+a e 0.3
+a f 0.2
+b c 0.35
+b d 0.6
+d e 0.65
+d g 0.4
+f b 0.25
+f g 0.15
+g f 0.1

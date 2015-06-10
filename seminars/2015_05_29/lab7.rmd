@@ -1,0 +1,99 @@
+---
+title: "Magolego SNA - Lab 7"
+author: "Eugen Kolbey, Mikhail Dubov, Shestakov Andrey"
+date: "05/29/2015"
+output:
+  html_document:
+    toc: true 
+---
+```{r, message=FALSE}
+# To actually install EpiModel you need a DLPK (http://www.gnu.org/software/glpk/) library, which can be easily installed in Ubuntu with `sudo apt-get install libglpk-dev`
+
+library("EpiModel")
+```
+# SIR Epidemic Model
+## SIR in EpiModel Library
+
+In a Susceptible-Infectious-Recovered (SIR) model, infected individuals recover from disease into a life-long recovered state; they are never again susceptible to disease. In this section, we model an 
+SIR disease by adding to our basic SI model a recovery process. We also introduce demographic processes so that persons may enter and exit the population through births and deaths. 
+
+In `EpiModel`, introducing these new transition processes into the model is straightforward. In param.dcm, parameters for the *recovery rate*, *birth rate*, and *state-specific death rate* must be entered. These model parameters imply that the birth rate is slightly higher than the underlying death rate among susceptibles, and that there is disease-induced mortality because the di.rate is larger than the other two death rates. In init.dcm, node that it is necessary to specify the number of initially recovered, even if that is 0. Finally, in control.dcm, the *dt* argument may be used to obtain model results in fractional time units
+
+```{r}
+param <- param.dcm(inf.prob = 0.2, act.rate = 1, rec.rate = 1/20,
+                   b.rate = 1/95, ds.rate = 1/100, di.rate = 1/80,
+                   dr.rate = 1/100)
+init <- init.dcm(s.num = 1000, i.num = 1, r.num = 0)
+control <- control.dcm(type = "SIR", nsteps = 500, dt = 0.5)
+mod <- dcm(param, init, control)
+```
+
+Next we plot the results of the model with several plot arguments set to non-default values
+
+```{r, echo=FALSE}
+par(mar = c(3.2, 3, 2, 1), mgp = c(2, 1, 0), mfrow = c(1, 2))
+plot(mod, popfrac = FALSE, alpha = 0.5,
+     lwd = 4, main = "Compartment Sizes")
+plot(mod, y = "si.flow", lwd = 4, col = "firebrick",
+     main = "Disease Incidence", leg = "n")
+```
+
+This plot provides a standard state-flow diagram that is often presented in the epidemiological literature
+
+```{r}
+par(mfrow = c(1, 1))
+comp_plot(mod, at = 50, digits = 1)
+```
+
+The plot shows the three state sizes and flows at t=50. This plot is also built into the summary function through the comp_plot argument to that function.
+
+## Simulating the Epidemic Model
+
+In contrast to DCMs and ICMs, which solve or simulate the epidemic system with one function, network models require multiple steps:
+
+* The network is initialized
+* The network model is parameterized
+* The network model is fit with netest
+* The network model is diagnosed with netdx
+* A dynamic network is simulated given the model fit
+* Epidemic processes are simulated on top of the dynamic simulated network
+
+
+```{r}
+size <- 500
+nw <- network.initialize(size, directed = FALSE)
+dissolution <- ~ offset(edges)
+duration <- 100
+coef.diss <- dissolution_coefs(dissolution, duration)
+formation <- ~ edges + concurrent
+target.stats <- c(50, 25)
+est <- netest(nw, 
+               formation, 
+               dissolution, 
+               target.stats, 
+               coef.diss, 
+               verbose = FALSE)
+dx <- netdx(est, nsims = 10, nsteps = 500)
+```
+
+
+```{r}
+param <- param.net(inf.prob = 0.8, act.rate = 50, rec.rate = 0.01)
+init <- init.net(i.num = 20, r.num = 1)
+control <- control.net(type = "SIR", nsims = 5, nsteps = 500,
+                       verbose.int = 0)
+sim <- netsim(est, param, init, control)
+
+par(mar = c(0,0,0,0))
+plot(sim, type = "network", 
+     col.status = TRUE, at = 1, sim = 1)
+
+par(mar = c(0,0,0,0))
+plot(sim, type = "network", 
+     col.status = TRUE, at = 500, sim = 1)
+
+summary(sim, at = 100)
+summary(sim, at = 250)
+summary(sim, at = 500)
+```
+

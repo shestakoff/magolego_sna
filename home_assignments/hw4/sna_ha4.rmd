@@ -1,0 +1,71 @@
+---
+title: "Social Network Analysis <br/> Home Assignment 4"
+date: due date - 19.06.2015 23:59
+author: "{Your Name}"
+output:
+  html_document:
+    toc: true 
+---
+# Network Epidemics
+
+Please send your reports to hse.ntwks@gmail.com with the subject of of the following structure:<br/>
+*[MAGOLEGO SNA 2015] {LastName} {First Name} HA{Number}*
+
+Late submission policy: -1 point per day
+
+Use this file as a template for your report.\
+Support your computations with figures and comments. Send ONLY .Rmd versions of your report.
+
+```{r, echo=FALSE}
+library(igraph)
+```
+## SIR Model
+
+You need to perform epidemic SIR model on different types of networks:
+Try different parameters for network generation
+```{r}
+gl <- list()
+gl$ba <- barabasi.game(n = 100,m = 12 , directed=FALSE)
+gl$er <- erdos.renyi.game(n = 250, p.or.m = 0.02, type=c("gnp"))
+gl$ws <- watts.strogatz.game(dim = 1, size = 1000, nei = 3, p = 0.01)
+``` 
+Moreover perform modeling on real peer-to-peer network [here](https://www.dropbox.com/s/sto6dxyja0u7y4u/Net.txt?dl=0)
+
+
+Your goal is to perform a research on epidemics:
+Use different values of parameters listed below
+```{r}
+beta <- 2
+gamma <- 4
+ntrials <- 100
+
+# Running function sir for each element of list gl (list with graphs)
+sim <- lapply(gl, sir, beta=beta, gamma=gamma, no.sim=ntrials)
+```
+at least 3 different versions, for example:
+
+* betta (4 6 8)
+* gamma (8 6 2)
+* niter (100 500 1000)
+    
+*For some reason `beta` and `gamma` parameters should not be set below 0 and 1. Looks like they are somehow normilized during simulation.*
+
+The code below can help you with plotting
+```{r}
+plot(sim$er)
+plot(sim$ba, color="palegoldenrod", median_color="gold", quantile_color="gold")
+plot(sim$ws, color="pink", median_color="red", quantile_color="red")
+
+x.max <- max(sapply(sapply(sim, time_bins), max))
+y.max <- 1.05 * max(sapply(sapply(sim, function(x) median(x)[["NI"]]), max, na.rm=TRUE))
+
+plot(time_bins(sim$er), median(sim$er)[["NI"]], type="l", lwd=2, col="blue", xlim=c(0, x.max), ylim=c(0, y.max), xlab="Time", ylab=expression(N[I](t)))
+lines(time_bins(sim$ba), median(sim$ba)[["NI"]], lwd=2, col="gold")
+lines(time_bins(sim$ws), median(sim$ws)[["NI"]],lwd=2, col="red")
+legend("topright", c("ER", "BA", "WS"),col=c("blue", "gold", "red"), lty=1)
+```
+
+You need to plot three values on the graphics: Number of infected, number of suseprible, number of recovered - all depends on time.
+As a result of this task, you need to provide 12 plots (one for each network with 3 diferent parameters) with explanation.
+
+
